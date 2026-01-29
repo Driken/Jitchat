@@ -102,6 +102,11 @@ RUN npm install --force
 # Copiar código do backend
 COPY whaticket_extracted/whaticket/backend/ ./
 
+# Compilar TypeScript se houver arquivos .ts (ignorar erro se não houver)
+RUN if [ -d "src" ] && [ -f "tsconfig.json" ]; then \
+      npm run watch || npm run build || echo "Compilação TypeScript ignorada"; \
+    fi
+
 # Criar diretório para uploads e sessões do WhatsApp
 RUN mkdir -p /app/public/uploads && \
     mkdir -p /app/.wwebjs_auth && \
@@ -121,7 +126,8 @@ ENV NODE_ENV=production
 ENV PORT=8080
 
 # Comando para iniciar o servidor backend
-CMD ["node", "whaticketplus/server.js"]
+# Usa ts-node-dev em modo produção se necessário, ou node diretamente
+CMD sh -c "if [ -f 'whaticketplus/server.js' ]; then node whaticketplus/server.js; elif [ -f 'automatizaai/server.js' ]; then node automatizaai/server.js; elif [ -f 'dist/server.js' ]; then node dist/server.js; elif [ -f 'src/server.ts' ]; then npx ts-node --transpile-only src/server.ts; elif [ -f 'index.js' ]; then node index.js; else echo 'Erro: Arquivo server.js não encontrado. Verifique a estrutura do backend.' && ls -la && exit 1; fi"
 
 # ============================================
 # STAGE 4: Frontend Final

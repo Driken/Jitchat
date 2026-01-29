@@ -5,7 +5,7 @@ const app = express();
 require('dotenv').config();
 
 app.use(express.static(path.join(__dirname, "whaticketplus")));
-app.get("/*", function (_req, res) {
+app.get("*", function (_req, res) {
 	res.sendFile(path.join(__dirname, "whaticketplus", "index.html"));
 });
 
