@@ -138,8 +138,8 @@ RUN apt-get update && apt-get install -y \
 COPY whaticket_extracted/whaticket/frontend/server.js ./
 COPY whaticket_extracted/whaticket/frontend/package*.json ./
 
-# Instalar apenas express e dotenv
-RUN npm install express dotenv --save
+# Instalar apenas express e dotenv (ignorar conflitos de peer dependencies)
+RUN npm install express dotenv --save --legacy-peer-deps
 
 # Copiar build do frontend do stage frontend-builder
 COPY --from=frontend-builder /app/frontend/whaticketplus ./whaticketplus
