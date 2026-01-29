@@ -38,6 +38,10 @@ Thumbs.db
 *.temp
 whaticket_extracted/
 
+# Senhas geradas (NUNCA commitar!)
+senhas-geradas.txt
+*.senhas.txt
+
 # Arquivos de backup
 *.zip
 backup/
