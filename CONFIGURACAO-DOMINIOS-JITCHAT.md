@@ -1,123 +1,89 @@
-# 🔧 Configuração de Domínios - jitchat.com.br
+# 🔧 Configuração de Domínios - Jitchat (Whaticket Community)
 
 ## ✅ Domínios Configurados
 
 - **Frontend**: `app.jitchat.com.br`
 - **Backend**: `api.jitchat.com.br`
 
-## 📋 Variáveis de Ambiente Necessárias no EasyPanel
+## 📋 Variáveis de Ambiente no EasyPanel
 
-Configure as seguintes variáveis de ambiente no EasyPanel:
-
-### 🔴 OBRIGATÓRIAS (URLs do Sistema)
+Configure estas variáveis no EasyPanel:
 
 ```bash
+# Sistema
+NODE_ENV=production
 BACKEND_URL=https://api.jitchat.com.br
 FRONTEND_URL=https://app.jitchat.com.br
-ALLOWED_ORIGINS=https://app.jitchat.com.br
-```
+PROXY_PORT=443
 
-### 🟡 IMPORTANTES (React Build - Frontend)
-
-Estas variáveis são usadas durante o BUILD do frontend:
-
-```bash
-REACT_APP_BACKEND_URL=https://api.jitchat.com.br
-REACT_APP_ENV_TOKEN=210897ugn217204u98u8jfo2983u5
-REACT_APP_HOURS_CLOSE_TICKETS_AUTO=9999999
-REACT_APP_FACEBOOK_APP_ID=1005318707427295
-REACT_APP_NAME_SYSTEM=whaticketplus
-REACT_APP_VERSION=1.0.0
-REACT_APP_PRIMARY_COLOR=#fffff
-REACT_APP_PRIMARY_DARK=2c3145
-REACT_APP_NUMBER_SUPPORT=51997059551
-```
-
-### 🟢 Banco de Dados e Redis
-
-```bash
+# Banco de Dados
 DB_USER=postgres
-DB_PASS=2000@23
-DB_NAME=whaticketwhaticketplus
-REDIS_PASSWORD=S3202m097dS=
+DB_PASS=SuaSenhaForte123!
+DB_NAME=whaticket
+
+# JWT (gere valores únicos!)
+JWT_SECRET=kZaOTd+VFLOQDsSgPWN1GGK1opQo6TLz11sX+h5h1TU=
+JWT_REFRESH_SECRET=HuB9Dgg12FfgL7g6SD7AB7E1xIb3NfF10oNbRmK1XdS=
+
+# Frontend Build
+REACT_APP_BACKEND_URL=https://api.jitchat.com.br
 ```
 
-### 🔵 JWT (Tokens de Autenticação)
+## 🚀 Como Fazer Deploy
 
-```bash
-JWT_SECRET=53pJTvkL9T6q2jYFFKwXgvLAgQahwbb/BM0opll5NZM=
-JWT_REFRESH_SECRET=1/n/QnJtfUphUd9CrXjaxRw+jSAxtRIJwFroFmqrRXY=
+### 1. Commit e Push das Alterações
+
+```powershell
+cd c:\Users\Administrador\Documents\Jitchat
+git add .
+git commit -m "Migrar para Whaticket Community com código fonte completo"
+git push
 ```
 
-## ⚠️ Problemas Corrigidos
+### 2. Configure os Domínios no EasyPanel
 
-### 1. ✅ Dockerfile - Variáveis React no Build
-- **Problema**: `REACT_APP_BACKEND_URL` estava hardcoded como `localhost`
-- **Solução**: Agora aceita variáveis via `ARG` durante o build
-- **Impacto**: O frontend agora usa a URL correta do backend durante o build
+**Backend:**
+- Domain: `api.jitchat.com.br`
+- Service: `backend`
+- Port: `8080`
+- SSL: Habilitar
 
-### 2. ✅ docker-compose.yml - Build Args
-- **Problema**: Variáveis React não eram passadas durante o build
-- **Solução**: Adicionado `build.args` no docker-compose.yml
-- **Impacto**: As variáveis são passadas corretamente durante o build
+**Frontend:**
+- Domain: `app.jitchat.com.br`
+- Service: `frontend`
+- Port: `3333`
+- SSL: Habilitar
 
-## 📝 Checklist de Configuração
+### 3. Configure o DNS
 
-- [ ] ✅ Domínios configurados no DNS:
-  - [ ] `app.jitchat.com.br` → IP do EasyPanel
-  - [ ] `api.jitchat.com.br` → IP do EasyPanel
+Aponte ambos os subdomínios para o IP do EasyPanel:
+- `app.jitchat.com.br` → IP do EasyPanel
+- `api.jitchat.com.br` → IP do EasyPanel
 
-- [ ] ✅ Variáveis de ambiente configuradas no EasyPanel:
-  - [ ] `BACKEND_URL=https://api.jitchat.com.br`
-  - [ ] `FRONTEND_URL=https://app.jitchat.com.br`
-  - [ ] `ALLOWED_ORIGINS=https://app.jitchat.com.br`
-  - [ ] `REACT_APP_BACKEND_URL=https://api.jitchat.com.br`
+### 4. Redeploy
 
-- [ ] ✅ Domínios configurados no EasyPanel:
-  - [ ] `app.jitchat.com.br` → serviço `frontend` → porta `3333`
-  - [ ] `api.jitchat.com.br` → serviço `backend` → porta `8080`
+Após configurar variáveis e domínios, faça o redeploy no EasyPanel.
 
-- [ ] ✅ SSL/TLS habilitado (Let's Encrypt) para ambos os domínios
+## 📝 Credenciais Padrão
 
-## 🚀 Próximos Passos
+Após o primeiro deploy, acesse `https://app.jitchat.com.br` com:
 
-1. **Configure as variáveis de ambiente no EasyPanel** (copie e cole as variáveis acima)
+- **Email**: `admin@whaticket.com`
+- **Senha**: `admin`
 
-2. **Configure os domínios no EasyPanel**:
-   - Vá em "Domains" ou "Networking"
-   - Adicione `app.jitchat.com.br` apontando para o serviço `frontend` na porta `3333`
-   - Adicione `api.jitchat.com.br` apontando para o serviço `backend` na porta `8080`
-   - Habilite SSL/TLS (Let's Encrypt) para ambos
+⚠️ **Troque a senha imediatamente após o primeiro login!**
 
-3. **Faça o redeploy**:
-   - Após configurar as variáveis e domínios
-   - Clique em "Redeploy" no EasyPanel
-   - O build agora usará as URLs corretas
+## ✅ O que foi Corrigido
 
-## 🔍 Verificação
+1. ✅ Migrado para Whaticket Community (código fonte completo)
+2. ✅ Backend com TypeScript compilado corretamente
+3. ✅ Frontend com build React funcionando
+4. ✅ Erro de rota `/*` corrigido
+5. ✅ PostgreSQL configurado
+6. ✅ Dockerfiles otimizados
 
-Após o deploy, verifique:
+## 🐛 Se houver problemas
 
-1. **Frontend acessível**: `https://app.jitchat.com.br`
-2. **Backend acessível**: `https://api.jitchat.com.br/health` (deve retornar status 200)
-3. **Console do navegador**: Não deve ter erros de CORS
-4. **Logs do frontend**: Não deve ter erros de conexão com o backend
-
-## ⚠️ Importante
-
-- **`REACT_APP_BACKEND_URL`** DEVE ser igual a **`BACKEND_URL`**
-- **`ALLOWED_ORIGINS`** DEVE ser igual a **`FRONTEND_URL`**
-- Use sempre **`https://`** (não `http://`)
-- Não use barras no final (`/`) nas URLs
-
-## 🐛 Se algo não funcionar
-
-1. Verifique os logs do serviço no EasyPanel
-2. Verifique se os domínios estão resolvendo corretamente:
-   ```bash
-   nslookup app.jitchat.com.br
-   nslookup api.jitchat.com.br
-   ```
-3. Verifique se o SSL está funcionando:
-   - Acesse `https://app.jitchat.com.br` (deve abrir sem avisos)
-   - Acesse `https://api.jitchat.com.br/health` (deve retornar JSON)
+1. Verifique os logs no EasyPanel
+2. Certifique-se que todas as variáveis estão configuradas
+3. Aguarde o DNS propagar (pode levar até 24h)
