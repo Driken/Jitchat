@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: whaticketplus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-whaticketwhaticketplus}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-2000@23}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - whaticketplus-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: whaticketplus-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-S3202m097dS=}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - whaticketplus-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    container_name: whaticketplus-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Variáveis de Sistema
+      NODE_ENV: ${NODE_ENV:-production}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3333}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3333}
+      PROXY_PORT: ${PROXY_PORT:-443}
+      PORT: 8080
+      
+      # Banco de Dados
+      DB_TIMEZONE: ${DB_TIMEZONE:--03:00}
+      DB_DIALECT: postgres
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-2000@23}
+      DB_NAME: ${DB_NAME:-whaticketwhaticketplus}
+      DB_PORT: 5432
+      DB_DEBUG: ${DB_DEBUG:-false}
+      DB_BACKUP: /app/backup
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-53pJTvkL9T6q2jYFFKwXgvLAgQahwbb/BM0opll5NZM=}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-1/n/QnJtfUphUd9CrXjaxRw+jSAxtRIJwFroFmqrRXY=}
+      
+      # Redis
+      REDIS_URI: redis://:${REDIS_PASSWORD:-S3202m097dS=}@redis:6379
+      REDIS_OPT_LIMITER_MAX: ${REDIS_OPT_LIMITER_MAX:-1}
+      REGIS_OPT_LIMITER_DURATION: ${REGIS_OPT_LIMITER_DURATION:-3000}
+      
+      # Master Key
+      MASTER_KEY: ${MASTER_KEY:-}
+      ENV_TOKEN: ${ENV_TOKEN:-}
+      WHATSAPP_UNREADS: ${WHATSAPP_UNREADS:-}
+      
+      # Facebook/Instagram
+      VERIFY_TOKEN: ${VERIFY_TOKEN:-Whaticket}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      
+      # Browser Settings
+      BROWSER_CLIENT: ${BROWSER_CLIENT:-}
+      BROWSER_NAME: ${BROWSER_NAME:-Chrome}
+      BROWSER_VERSION: ${BROWSER_VERSION:-10.0}
+      VIEW_QRCODE_TERMINAL: ${VIEW_QRCODE_TERMINAL:-true}
+      
+      # Email
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      
+      # Gerencianet
+      GERENCIANET_SANDBOX: ${GERENCIANET_SANDBOX:-false}
+      GERENCIANET_CLIENT_ID: ${GERENCIANET_CLIENT_ID:-}
+      GERENCIANET_CLIENT_SECRET: ${GERENCIANET_CLIENT_SECRET:-}
+      GERENCIANET_PIX_CERT: ${GERENCIANET_PIX_CERT:-}
+      GERENCIANET_PIX_KEY: ${GERENCIANET_PIX_KEY:-}
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - backend_uploads:/app/public/uploads
+      - backend_sessions:/app/.wwebjs_auth
+      - backend_backup:/app/backup
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - whaticketplus-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    container_name: whaticketplus-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      SERVER_PORT: 3333
+      REACT_APP_BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      REACT_APP_ENV_TOKEN: ${REACT_APP_ENV_TOKEN:-210897ugn217204u98u8jfo2983u5}
+      REACT_APP_HOURS_CLOSE_TICKETS_AUTO: ${REACT_APP_HOURS_CLOSE_TICKETS_AUTO:-9999999}
+      REACT_APP_FACEBOOK_APP_ID: ${REACT_APP_FACEBOOK_APP_ID:-1005318707427295}
+      REACT_APP_NAME_SYSTEM: ${REACT_APP_NAME_SYSTEM:-whaticketplus}
+      REACT_APP_VERSION: ${REACT_APP_VERSION:-1.0.0}
+      REACT_APP_PRIMARY_COLOR: ${REACT_APP_PRIMARY_COLOR:-#fffff}
+      REACT_APP_PRIMARY_DARK: ${REACT_APP_PRIMARY_DARK:-2c3145}
+      REACT_APP_NUMBER_SUPPORT: ${REACT_APP_NUMBER_SUPPORT:-51997059551}
+    ports:
+      - "3333:3333"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - whaticketplus-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  backend_sessions:
+    driver: local
+  backend_backup:
+    driver: local
+
+networks:
+  whaticketplus-network:
+    driver: bridge

@@ -1,0 +1,43 @@
+# Dependências
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+config
+
+# Builds
+dist/
+build/
+whaticketplus/
+
+# Logs
+*.log
+logs/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+.dockerignore
+
+# Arquivos temporários
+*.tmp
+*.temp
+whaticket_extracted/
+
+# Arquivos de backup
+*.zip
+backup/
