@@ -57,8 +57,11 @@ ARG VUE_FACEBOOK_APP_ID=23156312477653241
 RUN echo "VUE_URL_API=${VUE_URL_API}" > .env && \
     echo "VUE_FACEBOOK_APP_ID=${VUE_FACEBOOK_APP_ID}" >> .env
 
+# Node 17+ usa OpenSSL 3.0; Quasar/Webpack antigo precisa do provider legado
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 # Build do frontend (Quasar)
-RUN npx quasar build -m spa || npm run build
+RUN npx quasar build -m spa
 
 # ============================================
 # STAGE 3: Backend Final
