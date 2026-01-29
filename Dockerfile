@@ -6,6 +6,9 @@
 # ============================================
 FROM node:18-slim AS frontend-builder
 
+# Instalar Git (necessário para algumas dependências npm)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app/frontend
 
 # Copiar arquivos de dependências do frontend
@@ -43,6 +46,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     ca-certificates \
+    git \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
