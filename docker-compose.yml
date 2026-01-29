@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: whaticketplus-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-whaticketwhaticketplus}
@@ -10,8 +9,6 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
@@ -22,13 +19,10 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: whaticketplus-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-S3202m097dS=}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -42,7 +36,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: backend
-    container_name: whaticketplus-backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -114,8 +107,8 @@ services:
       - backend_uploads:/app/public/uploads
       - backend_sessions:/app/.wwebjs_auth
       - backend_backup:/app/backup
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -130,7 +123,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: frontend
-    container_name: whaticketplus-frontend
     restart: unless-stopped
     depends_on:
       - backend
@@ -146,8 +138,8 @@ services:
       REACT_APP_PRIMARY_COLOR: ${REACT_APP_PRIMARY_COLOR:-#fffff}
       REACT_APP_PRIMARY_DARK: ${REACT_APP_PRIMARY_DARK:-2c3145}
       REACT_APP_NUMBER_SUPPORT: ${REACT_APP_NUMBER_SUPPORT:-51997059551}
-    ports:
-      - "3333:3333"
+    expose:
+      - "3333"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3333', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
