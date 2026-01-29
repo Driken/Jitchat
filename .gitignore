@@ -36,7 +36,7 @@ Thumbs.db
 # Arquivos temporários
 *.tmp
 *.temp
-whaticket_extracted/
+# whaticket_extracted/ - REMOVIDO: necessário para build Docker
 
 # Senhas geradas (NUNCA commitar!)
 senhas-geradas.txt
