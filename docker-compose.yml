@@ -6,6 +6,10 @@
 services:
   # ============================================
   # Banco de Dados PostgreSQL
+  # IMPORTANTE: POSTGRES_PASSWORD deve ser IGUAL no serviço postgres e no backend.
+  # Se o volume já existir, a senha é a que foi usada na 1ª inicialização.
+  # Para trocar a senha: remova o volume postgres_data e faça deploy de novo.
+  # Ver SOLUCAO-POSTGRES-SENHA.md em caso de "password authentication failed".
   # ============================================
   postgres:
     image: postgres:15-alpine
