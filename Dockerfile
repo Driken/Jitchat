@@ -1,5 +1,7 @@
-# Dockerfile para Whaticket Community
-# Adaptado para deploy com EasyPanel/Docker
+# ============================================
+# Dockerfile para Izing - Sistema de Atendimento
+# Com FlowBuilder, Multi-canal e Chatbot
+# ============================================
 
 # ============================================
 # STAGE 1: Backend Builder
@@ -17,13 +19,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivos de dependências
-COPY whaticket_community/backend/package*.json ./
+COPY izing/backend/package*.json ./
 
 # Instalar dependências
 RUN npm install
 
 # Copiar código fonte
-COPY whaticket_community/backend/ ./
+COPY izing/backend/ ./
 
 # Compilar TypeScript
 RUN npm run build
@@ -39,33 +41,36 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivos de dependências
-COPY whaticket_community/frontend/package*.json ./
+COPY izing/frontend/package*.json ./
 
 # Instalar dependências
 RUN npm install
 
 # Copiar código fonte
-COPY whaticket_community/frontend/ ./
+COPY izing/frontend/ ./
 
-# Argumentos de build para variáveis React
-ARG REACT_APP_BACKEND_URL=http://localhost:8080
-ARG REACT_APP_HOURS_CLOSE_TICKETS_AUTO=9999999
+# Argumentos de build para variáveis Vue
+ARG VUE_URL_API=http://localhost:3100
+ARG VUE_FACEBOOK_APP_ID=23156312477653241
 
 # Criar .env para o build
-RUN echo "REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}" > .env
+RUN echo "VUE_URL_API=${VUE_URL_API}" > .env && \
+    echo "VUE_FACEBOOK_APP_ID=${VUE_FACEBOOK_APP_ID}" >> .env
 
-# Build do frontend
-RUN npm run build
+# Build do frontend (Quasar)
+RUN npx quasar build -m spa || npm run build
 
 # ============================================
 # STAGE 3: Backend Final
 # ============================================
 FROM node:18-slim AS backend
 
-# Instalar dependências para Puppeteer/Chrome
+# Instalar dependências para Chrome/Puppeteer e FFmpeg
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
+    nano \
+    ffmpeg \
     ca-certificates \
     fonts-liberation \
     libasound2 \
@@ -101,14 +106,22 @@ RUN apt-get update && apt-get install -y \
     libxtst6 \
     lsb-release \
     xdg-utils \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-thai-tlwg \
+    fonts-kacst \
+    fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Chrome
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
     && apt-get update \
-    && apt-get install -y google-chrome-stable \
+    && apt-get install -y google-chrome-stable --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
+
+# Instalar PM2 globalmente
+RUN npm install pm2@latest -g
 
 WORKDIR /app
 
@@ -116,22 +129,22 @@ WORKDIR /app
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/dist ./dist
 COPY --from=backend-builder /app/package*.json ./
-COPY whaticket_community/backend/.sequelizerc ./
+COPY izing/backend/.sequelizerc ./
 
 # Criar diretórios necessários
 RUN mkdir -p /app/public /app/.wwebjs_auth
 
 # Variáveis de ambiente
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=3000
+ENV PROXY_PORT=3100
 ENV CHROME_BIN=/usr/bin/google-chrome-stable
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV CHROME_ARGS="--no-sandbox --disable-setuid-sandbox"
 
-EXPOSE 8080
+EXPOSE 3100
 
 # Comando para iniciar
-CMD ["sh", "-c", "npx sequelize db:migrate && node dist/server.js"]
+CMD ["sh", "-c", "npx sequelize db:migrate && pm2-runtime start ./dist/server.js"]
 
 # ============================================
 # STAGE 4: Frontend Final
@@ -140,14 +153,11 @@ FROM node:18-slim AS frontend
 
 WORKDIR /app
 
-# Copiar servidor Express
-COPY whaticket_community/frontend/server.js ./
-
-# Instalar Express
-RUN npm init -y && npm install express dotenv
+# Instalar servidor estático
+RUN npm install -g serve
 
 # Copiar build do frontend
-COPY --from=frontend-builder /app/build ./build
+COPY --from=frontend-builder /app/dist/spa ./dist
 
 # Variáveis de ambiente
 ENV NODE_ENV=production
@@ -156,4 +166,4 @@ ENV PORT=3333
 EXPOSE 3333
 
 # Comando para iniciar
-CMD ["node", "server.js"]
+CMD ["serve", "-s", "dist", "-l", "3333"]

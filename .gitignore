@@ -39,8 +39,9 @@ Thumbs.db
 # Pastas antigas (não mais necessárias)
 whaticket_extracted/
 whaticket_temp/
+whaticket_community/
 
-# whaticket_community/ - NÃO IGNORAR: necessário para build Docker
+# izing/ - NÃO IGNORAR: necessário para build Docker (FlowBuilder)
 
 # Senhas geradas (NUNCA commitar!)
 senhas-geradas.txt

@@ -1,22 +1,69 @@
+# ============================================
+# Docker Compose - Izing (Sistema de Atendimento)
+# Com FlowBuilder, Multi-canal e Chatbot
+# ============================================
+
 services:
+  # ============================================
+  # Banco de Dados PostgreSQL
+  # ============================================
   postgres:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-whaticket}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-strongpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-izing}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strongpassword}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - whaticket-network
+      - izing-network
 
+  # ============================================
+  # Redis (Cache e Sessões)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --replica-read-only no
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - izing-network
+
+  # ============================================
+  # RabbitMQ (Filas de Mensagens) - Opcional
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-123456}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - izing-network
+
+  # ============================================
+  # Backend API
+  # ============================================
   backend:
     build:
       context: .
@@ -26,50 +73,80 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # Sistema
       NODE_ENV: ${NODE_ENV:-production}
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3100}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3333}
-      PROXY_PORT: ${PROXY_PORT:-443}
-      PORT: 8080
+      PROXY_PORT: 3100
+      PORT: 3000
       
       # Banco de Dados PostgreSQL
       DB_DIALECT: postgres
-      DB_HOST: postgres
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASS: ${DB_PASS:-strongpassword}
-      DB_NAME: ${DB_NAME:-whaticket}
       DB_PORT: 5432
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strongpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-izing}
       
       # JWT
-      JWT_SECRET: ${JWT_SECRET:-kZaOTd+VFLOQDsSgPWN1GGK1opQo6TLz11sX+h5h1TU=}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-HuB9Dgg12FfgL7g6SD7AB7E1xIb3NfF10oNbRmK1XdS=}
+      JWT_SECRET: ${JWT_SECRET:-DPHmNRZWZ4isLF9vXkMv1QabvpcA80Rc}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-EMPehEbrAdi7s8fGSeYzqGQbV5wrjH4i}
+      
+      # Redis
+      IO_REDIS_SERVER: redis
+      IO_REDIS_PORT: 6379
+      IO_REDIS_DB_SESSION: 2
+      
+      # RabbitMQ (opcional)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-123456}
+      AMQP_URL: amqp://${RABBITMQ_DEFAULT_USER:-admin}:${RABBITMQ_DEFAULT_PASS:-123456}@rabbitmq:5672?connection_attempts=5&retry_delay=5
       
       # Chrome/Puppeteer
       CHROME_BIN: /usr/bin/google-chrome-stable
-      CHROME_ARGS: "--no-sandbox --disable-setuid-sandbox"
+      
+      # Tempos de espera do Bot (ms)
+      MIN_SLEEP_BUSINESS_HOURS: ${MIN_SLEEP_BUSINESS_HOURS:-10000}
+      MAX_SLEEP_BUSINESS_HOURS: ${MAX_SLEEP_BUSINESS_HOURS:-20000}
+      MIN_SLEEP_AUTO_REPLY: ${MIN_SLEEP_AUTO_REPLY:-4000}
+      MAX_SLEEP_AUTO_REPLY: ${MAX_SLEEP_AUTO_REPLY:-6000}
+      MIN_SLEEP_INTERVAL: ${MIN_SLEEP_INTERVAL:-2000}
+      MAX_SLEEP_INTERVAL: ${MAX_SLEEP_INTERVAL:-5000}
+      
+      # Facebook/Instagram (opcional)
+      FACEBOOK_APP_SECRET_KEY: ${FACEBOOK_APP_SECRET_KEY:-}
+      VUE_FACEBOOK_APP_ID: ${VUE_FACEBOOK_APP_ID:-}
+      
+      # Admin
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:-izing.io}
     volumes:
       - backend_public:/app/public
       - backend_sessions:/app/.wwebjs_auth
     expose:
-      - "8080"
+      - "3100"
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3100', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     networks:
-      - whaticket-network
+      - izing-network
 
+  # ============================================
+  # Frontend (Vue.js/Quasar)
+  # ============================================
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       target: frontend
       args:
-        REACT_APP_BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+        VUE_URL_API: ${BACKEND_URL:-http://localhost:3100}
+        VUE_FACEBOOK_APP_ID: ${VUE_FACEBOOK_APP_ID:-}
     restart: unless-stopped
     depends_on:
       - backend
@@ -85,16 +162,26 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - whaticket-network
+      - izing-network
 
+# ============================================
+# Volumes Persistentes
+# ============================================
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
     driver: local
   backend_public:
     driver: local
   backend_sessions:
     driver: local
 
+# ============================================
+# Rede
+# ============================================
 networks:
-  whaticket-network:
+  izing-network:
     driver: bridge
