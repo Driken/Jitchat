@@ -6,6 +6,17 @@
 # ============================================
 FROM node:18-slim AS frontend-builder
 
+# Aceitar argumentos de build para variáveis React
+ARG REACT_APP_BACKEND_URL=http://localhost:8080
+ARG REACT_APP_ENV_TOKEN=210897ugn217204u98u8jfo2983u5
+ARG REACT_APP_HOURS_CLOSE_TICKETS_AUTO=9999999
+ARG REACT_APP_FACEBOOK_APP_ID=1005318707427295
+ARG REACT_APP_NAME_SYSTEM=whaticketplus
+ARG REACT_APP_VERSION=1.0.0
+ARG REACT_APP_PRIMARY_COLOR=#fffff
+ARG REACT_APP_PRIMARY_DARK=2c3145
+ARG REACT_APP_NUMBER_SUPPORT=51997059551
+
 # Instalar Git (necessário para algumas dependências npm)
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
@@ -20,18 +31,18 @@ RUN npm install --force
 # Copiar código do frontend
 COPY whaticket_extracted/whaticket/frontend/ ./
 
-# Criar arquivo .env temporário para o build se necessário
-RUN if [ ! -f .env ]; then \
-      echo "REACT_APP_BACKEND_URL=http://localhost:8080" > .env && \
-      echo "REACT_APP_ENV_TOKEN=210897ugn217204u98u8jfo2983u5" >> .env && \
-      echo "REACT_APP_HOURS_CLOSE_TICKETS_AUTO=9999999" >> .env && \
-      echo "REACT_APP_FACEBOOK_APP_ID=1005318707427295" >> .env && \
-      echo "REACT_APP_NAME_SYSTEM=whaticketplus" >> .env && \
-      echo "REACT_APP_VERSION=1.0.0" >> .env && \
-      echo "REACT_APP_PRIMARY_COLOR=#fffff" >> .env && \
-      echo "REACT_APP_PRIMARY_DARK=2c3145" >> .env && \
-      echo "REACT_APP_NUMBER_SUPPORT=51997059551" >> .env; \
-    fi
+# Criar arquivo .env com variáveis de build
+# Usa ARG se disponível, senão usa valores padrão
+RUN echo "REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}" > .env && \
+    echo "REACT_APP_ENV_TOKEN=${REACT_APP_ENV_TOKEN}" >> .env && \
+    echo "REACT_APP_HOURS_CLOSE_TICKETS_AUTO=${REACT_APP_HOURS_CLOSE_TICKETS_AUTO}" >> .env && \
+    echo "REACT_APP_FACEBOOK_APP_ID=${REACT_APP_FACEBOOK_APP_ID}" >> .env && \
+    echo "REACT_APP_NAME_SYSTEM=${REACT_APP_NAME_SYSTEM}" >> .env && \
+    echo "REACT_APP_VERSION=${REACT_APP_VERSION}" >> .env && \
+    echo "REACT_APP_PRIMARY_COLOR=${REACT_APP_PRIMARY_COLOR}" >> .env && \
+    echo "REACT_APP_PRIMARY_DARK=${REACT_APP_PRIMARY_DARK}" >> .env && \
+    echo "REACT_APP_NUMBER_SUPPORT=${REACT_APP_NUMBER_SUPPORT}" >> .env && \
+    cat .env
 
 # Build da aplicação React
 RUN npm run build || (echo "Build falhou, mas continuando..." && mkdir -p whaticketplus)

@@ -123,6 +123,16 @@ services:
       context: .
       dockerfile: Dockerfile
       target: frontend
+      args:
+        REACT_APP_BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+        REACT_APP_ENV_TOKEN: ${REACT_APP_ENV_TOKEN:-210897ugn217204u98u8jfo2983u5}
+        REACT_APP_HOURS_CLOSE_TICKETS_AUTO: ${REACT_APP_HOURS_CLOSE_TICKETS_AUTO:-9999999}
+        REACT_APP_FACEBOOK_APP_ID: ${REACT_APP_FACEBOOK_APP_ID:-1005318707427295}
+        REACT_APP_NAME_SYSTEM: ${REACT_APP_NAME_SYSTEM:-whaticketplus}
+        REACT_APP_VERSION: ${REACT_APP_VERSION:-1.0.0}
+        REACT_APP_PRIMARY_COLOR: ${REACT_APP_PRIMARY_COLOR:-#fffff}
+        REACT_APP_PRIMARY_DARK: ${REACT_APP_PRIMARY_DARK:-2c3145}
+        REACT_APP_NUMBER_SUPPORT: ${REACT_APP_NUMBER_SUPPORT:-51997059551}
     restart: unless-stopped
     depends_on:
       - backend
